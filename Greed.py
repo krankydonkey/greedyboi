@@ -28,10 +28,28 @@ def greater_odds(n, greater, other=None, s=6):
     return sum([greater_odds(n, greater[1:], other + [greater[0] + i], s) for i in range(left+1)])
 
 
-def between(n, lower, upper, other=None, s=6):
-    other = [] if other is None else [other] if not isinstance(other, list) else other
+def below(n, upper, other=None):
+    other = [] if other is None else other
+    if not upper:
+        if np.all(other == 1):
+            return []
+        else:
+            return [other]
+    else:
+        rolls = []
+        start = max(n - sum(upper[1:]), 0)
+        stop = min(n+1, upper[0])
+        print("start: " + str(start) + " stop: " + str(stop))
+        for i in range(start, stop):
+            rolls += below(n-i, upper[1:], other + [i])
+        return rolls
+
+
+def between(n, lower, upper=None, other=None, s=6):  # lower and upper must be lists
+    other = [] if other is None else other
+    upper = np.ones(s, dtype=int) * n if upper is None else upper
     if not lower:
-        return odds(n, other, s)
+        return 0 if np.all(other) == 1 else odds(n, other, s)
     left = min(n - sum(lower) - sum(other) + 1, upper[0] - lower[0])
     return sum([between(n, lower[1:], upper[1:], other + [lower[0] + i], s) for i in range(left)])
 
@@ -60,6 +78,53 @@ def outcomes(n, min_dice):
     combos = np.array(np.meshgrid(*combos)).T.reshape(-1, len(min_dice))
     combos = combos[combos.sum(axis=1) <= n, :]
     return combos
+
+
+def dice_str(dice):
+    return ''.join(map(str, dice))
+
+
+def link(combos):
+    states = {}
+    for combo in combos:
+        states[dice_str(combo)] = State(combo)
+    num_states, _ = combos.shape()
+    for i in range(num_states):  #This will go over states with 6 scoring dice, even though they dont necessarily have next states
+        combo = combos[i]
+        state = states[dice_str(combo)]
+        other_states = np.vstack((combos[:i, :], combos[i + 1:, :]))
+        rolls = other_states[np.all(other_states >= combo, axis=1)]
+        num_rolls, _ = rolls.shape
+        for j in range(num_rolls):
+            roll = rolls[j]
+            # calculate probability of getting roll from combo
+            other_rolls = np.vstack((rolls[:j, :], rolls[j+1:, :]))
+            sub_states = other_rolls[np.all(other_rolls <= roll, axis=1)]
+            state.add_roll(Roll(states[dice_str(roll)], sub_states))
+
+
+class Roll:
+    def __init__(self, state, subs):
+        self.state = state
+        self.subs = subs
+        self.prob = 1
+        self.action = -1
+
+
+class State:
+    def __init__(self, dice):
+        self.dice = dice
+        self.score = 0
+        self.rolls = []
+
+    def add_roll(self, roll):
+        self.rolls.append(roll)
+
+    def __str__(self):
+        return str(self.dice)
+
+    def __repr__(self):
+        return str(self.dice)
 
 
 class Greed:
@@ -101,11 +166,8 @@ class Greed:
         self.turn = 0
 
 
-t1 = time.time()
-for i in range(1000):
-    between(6, [3, 0, 0, 1, 0, 0], [6, 6, 6, 6, 6, 6])
-t2 = time.time()
-print(t2-t1)
+
+
 
 #game = Greed()
 #game.roll_probs()
