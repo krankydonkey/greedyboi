@@ -1,0 +1,57 @@
+\documentclass[a4paper]{article}
+\usepackage{amsfonts}
+\usepackage{xspace}
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+
+\title{%
+	Optimizing Greed \\
+	\large The probability of the D-Grind}
+\author{Damian van Kranendonk}
+\date{\today}
+
+\newcommand{\game}{\ensuremath{\mathbb{\$}}\xspace}
+\newcommand{\gameg}{\ensuremath{\mathbb{G}}\xspace}
+\newcommand{\gamer}{\ensuremath{\mathbb{R}}\xspace}
+\newcommand{\gamee}{\ensuremath{\mathbb{E}}\xspace}
+\newcommand{\gamebe}{\ensuremath{\mathbf{E}}\xspace}
+\newcommand{\gamed}{\ensuremath{\mathbb{D}}\xspace}
+
+
+\begin{document}
+\maketitle
+\newpage
+\begin{figure}[h]
+	\centering
+	\includegraphics[scale=0.7]{Logo.png}
+\end{figure}
+\section{The Game}
+
+Greed is a dice game where you accumulate points by rolling specific combinations of dice. There are six dice, with their faces labelled the letters of the game: \game, \gameg, \gamer, \gamee, \gamebe, \gamed (one E is green, one is black, but here they'll be distinguished by bold text). The scoring chart is shown below:
+
+\begin{table}[h]
+\begin{tabular}{ll}
+1 x \gameg & = 50 \\
+1 x \gamed & = 100 \\
+3 x \gamee & = 300 \\
+3 x \gamebe & = 300 \\
+3 x \gamer & = 400 \\
+3 x \gameg & = 500 \\
+3 x \game & = 600 \\
+4 x \gamed & = 1000 \\
+\game, \gameg, \gamer, \gamee, \gamebe, \gamed & = 1000 \\
+6 of a kind & = 5000
+\end{tabular}
+\end{table}
+
+As you can see, only a few letters can score with only one occurrence; for many, you need to have 3 or more showing to be worth any points. You start your turn by rolling all 6 die, and you can re-roll dice and as much as you want, but after each roll you must set aside some amount of dice that increase your point total (and you cannot keep any that don't). If your roll has no scoring dice, you go bust and you lose all points you accumulated on the current turn. If you don't go bust you may choose to `sit', ending your turn and adding the points you've set aside to your total score. Finally, if all 6 dice are scoring, you can re-roll all of them and continue adding points to those you already had set aside. We take this one step further and say that, if you would end your turn with 6 scoring dice, you MUST re-roll, and you cannot end your turn with 6 scoring dice showing but say you're only using 5 of them to get out of it. \\
+
+There are two parts that make this tricky to optimize. The first is that players don't have to keep all scoring dice each roll, and can selectively keep dice to aim for a possible future state. The second is that the score of the dice you have set aside may be enhanced later in the turn. For instance, if I roll 1 \gameg and 3 \gamee I could have 350 points, or I could keep just the \gameg for 50 and try and get another 2 to make it 500. The third and most challenging element is the ability to re-roll with 6 scoring dice. This essentially creates an infinite possible depth to each turn, and an infinite depth to any decision calculator. \\
+
+\section{The Theory}
+The decision to re-roll is relatively simply. Are the additional points I could get worth the risk of losing all the points I currently have. That is to say, is the sum of the probability of all future states multiplied by their point values greater than the points I have now. \\
+
+Every combination of the 6 dice, each state, has a weighted score associated. This score is how many points you are likely to expect from being in this state. Unfortunately, the weighted score of a state is affected by the weighted score of future states. \\
+
+Each state or set of dice has two values associated with it: its score, and an expected score. The expected score is the average score you are likely to get from this state if you continue to make optimal decisions. It is beneficial to continue playing until you get to a state where the score is greater than the expected score. Unfortunately, a states expected score is dependent on the expected score of future states, as these values will affect the dice-keeping decisions of the states before them. To solve this problem, we need to first create a graph of states and their scores, then start calculating expected scores from the very last state and propagate backwards to the initial roll. This would be easy if you couldn't re-roll once all six dice were scoring, as this gives a fixed depth of 6. As the re-roll is forced, however, the depth of the graph is potentially infinite, as you could theoretically roll 6 scoring dice every single roll. We need a cap on the number of rounds we grow the graph by. We need to characterise the expected score of rolling 6 scoring dice continually, and find the point where, even with a roll that gives the maximum possible expected score, re-rolling would still be worse. From this point on, the expected score of all future states would just be the score of the state.
+\end{document}
