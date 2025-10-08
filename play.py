@@ -1,4 +1,5 @@
 from random import randrange
+from scipy.special import factorial
 import numpy as np
 
 
@@ -24,12 +25,20 @@ scores = [
 min_scoring = np.array([1, 3, 3, 3, 1, 3])
 
 
-def roll(num_dice: int) -> np.array:
+def roll(num_dice: int) -> np.ndarray:
     return np.random.randint(num_faces, size=num_dice)
 
 
-def count(dice: np.array) -> np.array:
+def count(dice: np.ndarray) -> np.ndarray:
     return np.bincount(dice, minlength=num_faces)
+
+
+def odds(dice: np.ndarray) -> float:
+    num_dice = np.sum(dice)
+    dice_left = np.roll(num_dice - np.cumsum(dice), 1)
+    dice_left[0] = num_dice
+    nums = np.prod(factorial(dice_left) / (factorial(dice) * factorial(dice_left - dice)))
+    return nums * (1 / num_faces) ** num_dice
 
 
 def has_scoring(dice: np.array) -> bool:
@@ -100,6 +109,7 @@ def turn(locked: np.array):
                 locked = trial_counted
                 return trial_score, trial_counted
 
+"""
 total = 0
 while total < 5000:
     base_score = 0
@@ -120,6 +130,10 @@ while total < 5000:
             total += base_score + new_score
             break
     print(f"\nTotal score: {total}")
-            
+"""
+
+roll = np.array([6, 0, 0, 0, 0, 0])
+print(roll)
+print(odds(roll))
     
 
