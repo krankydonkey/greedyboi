@@ -37,8 +37,22 @@ def exact(dice: np.ndarray, num_dice: int, num_faces: int) -> float:
 
 
 def exact_less(dice: np.ndarray, less_than: np.ndarray, num_dice: int, num_faces: int) -> float:
-    pass
+    ranges = [np.arange(n) for n in less_than]
+    combinations = np.array(np.meshgrid(*ranges)).T.reshape(-1, len(less_than))
+    combinations += dice
+    combinations = combinations[combinations.sum(axis=1) <= num_dice, :]
+    remaining_dice = num_dice - combinations.sum(axis=1)
+    combinations = np.column_stack((combinations, remaining_dice))
+    probabilities = np.full(combinations.shape, 1 / num_faces)
+    probabilities[:,-1] = (num_faces - dice.size) / num_faces
+    totals = factorial(num_dice) * np.prod(np.power(probabilities, combinations), axis=1) / np.prod(factorial(combinations), axis=1)
+    return np.sum(totals)
+    #scores = scores[scores.sum(axis=1) <= num_dice, :]
+    #scores = scores[np.argsort(scores.sum(axis=1))[::-1], :]
 
 
-def at_least2(dice: np.ndarray, num_dice: int, num_faces: int) -> float:
-    pass
+def prob(dice: np.ndarray, max_dice: np.ndarray | None = None, num_dice: int | None = None, num_faces: int = 6):
+        pass
+
+
+exact_less(np.array([2, 2]), np.array([2, 3]), 6, 6)
