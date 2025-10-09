@@ -1,6 +1,7 @@
 from random import randrange
 from scipy.special import factorial
 import numpy as np
+import odds
 
 
 faces = ['G', 'R', 'E', 'e', 'D', '$']
@@ -25,20 +26,30 @@ scores = [
 min_scoring = np.array([1, 3, 3, 3, 1, 3])
 
 
+def state_prob(dice: np.ndarray, start: np.ndarray) -> float:
+    diff = dice - start
+    max_dice = diff + min_scoring
+    num_dice = total_dice - np.sum(start)
+    probability = odds.exact(num_dice, dice, max_dice, num_faces)
+
+    # Remove probability of all 1's
+    ones = np.ones(num_dice, dtype=int)
+    if dice != ones and np.all(ones >= start):
+        ones_odds = odds.exact(num_dice, ones, num_faces=num_faces)
+        probability -= ones_odds
+
+
+
+
+    
+
+
 def roll(num_dice: int) -> np.ndarray:
     return np.random.randint(num_faces, size=num_dice)
 
 
 def count(dice: np.ndarray) -> np.ndarray:
     return np.bincount(dice, minlength=num_faces)
-
-
-def odds(dice: np.ndarray) -> float:
-    num_dice = np.sum(dice)
-    dice_left = np.roll(num_dice - np.cumsum(dice), 1)
-    dice_left[0] = num_dice
-    nums = np.prod(factorial(dice_left) / (factorial(dice) * factorial(dice_left - dice)))
-    return nums * (1 / num_faces) ** num_dice
 
 
 def has_scoring(dice: np.array) -> bool:

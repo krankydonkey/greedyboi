@@ -20,7 +20,7 @@ def at_least(num_dice: int, dice: np.ndarray, num_faces: int = 6) -> float:
     :param int num_dice: the number of dice rolled
     :param np.ndarray dice: the rolled dice, as a count of each face. For example,
                             rolling two of one face and one of another would be [2, 1]
-    :param int num_sides: the number of sides on each dice
+    :param int num_faces: the number of sides on each dice
     """
     probabilities = np.full(dice.size, 1 / num_faces)
     return multinomial(num_dice, dice, probabilities)
@@ -37,7 +37,7 @@ def exact(num_dice: int, dice: np.ndarray, max_dice: np.ndarray | None = None, n
     :param np.ndarray dice: the rolled dice, as a count of each face. For example,
                             rolling two of one face and one of another would be [2, 1]
     :param np.ndarray max_dice: an upper bound for the rolled dice, as a count of each face.
-    :param int num_sides: the number of sides on each dice
+    :param int num_faces: the number of sides on each dice
     """
 
     if max_dice is None:
