@@ -143,7 +143,7 @@ class Solver:
                 
                 edge = Edge(
                     self.states[i],
-                    self.states[j],
+                    self.states[greater_index],
                     [self.states[k] for k in option_score_indices],
                     greater_odds
                 )
