@@ -22,7 +22,7 @@ def at_least(num_dice: int, dice: np.ndarray, num_faces: int = 6) -> float:
                             rolling two of one face and one of another would be [2, 1]
     :param int num_faces: the number of sides on each dice
     """
-    probabilities = np.full(dice.size, 1 / num_faces)
+    probabilities = np.full(dice.shape[0], 1 / num_faces)
     return multinomial(num_dice, dice, probabilities)
 
 
