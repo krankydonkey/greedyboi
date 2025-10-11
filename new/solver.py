@@ -23,6 +23,21 @@ class State:
     ready: bool = False
 
 
+
+class Node:
+    def __init__(self, roll: np.ndarray, score: int):
+        self.dice = tuple(roll.tolist())
+        self.score = score
+        self.greater: list[Node] = []
+        self.lesser: list[Node] = []
+
+    def __str__(self):
+        return f"Dice: {self.dice}, Score: {self.score}, Greater:{[node.dice for node in self.greater]}, Lesser: {[node.dice for node in self.lesser]}"
+    
+    def __repr__(self):
+        return f"Dice: {self.dice}, Score: {self.score}, Greater:{[node.dice for node in self.greater]}, Lesser: {[node.dice for node in self.lesser]}"
+
+
 def get_roll_odds(num_dice: int, num_faces: int, rolls: np.ndarray):
     dice = rolls
     face_odds = np.full(dice.shape[1], 1 / num_faces)
@@ -33,14 +48,14 @@ def get_greater_rolls(rolls: np.ndarray, roll: np.ndarray) -> tuple[np.ndarray, 
     greater_equal_indices = (rolls >= roll).all(axis=1).nonzero()[0]
     greater_equal_rolls = rolls[greater_equal_indices]
     greater_indices = (greater_equal_rolls > roll).any(axis=1).nonzero()[0]
-    return greater_equal_rolls[greater_indices], greater_indices
+    return greater_equal_rolls[greater_indices], greater_equal_indices[greater_indices]
 
 
 def get_lesser_rolls(rolls: np.ndarray, roll: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     lesser_equal_indices = (rolls <= roll).all(axis=1).nonzero()[0]
     lesser_equal_rolls = rolls[lesser_equal_indices]
     lesser_indices = (lesser_equal_rolls < roll).any(axis=1).nonzero()[0]
-    return lesser_equal_rolls[lesser_indices], lesser_indices
+    return lesser_equal_rolls[lesser_indices], lesser_equal_indices[lesser_indices]
         
 
 def combine(rolls: np.ndarray, scores: np.ndarray, total_dice: int):
@@ -67,9 +82,7 @@ def combine(rolls: np.ndarray, scores: np.ndarray, total_dice: int):
     return combo_rolls, combo_scores
 
 
-def make_states(rolls: np.ndarray, scores: np.ndarray, total_dice: int, num_faces: int):
-    states = []
-    combo_rolls, combo_scores = combine(rolls, scores, total_dice)
+def make_states(combo_rolls: np.ndarray, combo_scores: np.ndarray, total_dice: int, num_faces: int):
     num_states = combo_scores.size
     state_indices = np.arange(num_states)
 
@@ -100,7 +113,7 @@ def make_states(rolls: np.ndarray, scores: np.ndarray, total_dice: int, num_face
                 greatest_roll = greatest_rolls[k]
                 _, lesser_indices = get_lesser_rolls(greatest_rolls, greatest_roll)
                 if lesser_indices.size == 0:
-                    greater_odds -= greatest_odds[k]
+                    greater_odds -= greatest_odds[k] ### WRONG! There sill be overlap in the greater_odds. Need to make full tree, and then for each roll calculate odds of end nodes and then work back
 
             # Make Edge and link
             edge = Edge(states[i], states[j], [states[k] for k in middle_state_indices], greater_odds)
@@ -108,6 +121,34 @@ def make_states(rolls: np.ndarray, scores: np.ndarray, total_dice: int, num_face
             edge.end.less.append(edge)
 
     return states
+        
+        
+def make_tree(combo_rolls: np.ndarray, combo_scores: np.ndarray, total_dice: int, num_faces: int):
+    # Sort by number of dice:
+    num_dice = combo_rolls.sum(axis=1)
+    sorted_indices = np.argsort(num_dice)
+    combo_rolls = combo_rolls[sorted_indices]
+    combo_scores = combo_scores[sorted_indices]
+
+    # Create nodes
+    num_nodes = combo_scores.size
+    node_indices = np.arange(num_nodes)
+    nodes = [Node(combo_rolls[i], combo_scores[i]) for i in node_indices]
+
+    # Link nodes
+    for i in node_indices:
+        roll = combo_rolls[i]
+        greater_rolls, greater_indices = get_greater_rolls(combo_rolls[i+1:,:], roll)
+        greater_node_indices = node_indices[i+1:][greater_indices]  
+        for j in range(greater_indices.size):
+            _, middle_indices = get_lesser_rolls(greater_rolls[:j-1, :], greater_rolls[j])
+            if middle_indices.size == 0:
+                lesser_node = nodes[i]
+                greater_node = nodes[greater_node_indices[j]]
+                lesser_node.greater.append(greater_node)
+                greater_node.lesser.append(lesser_node)
+
+    return nodes
 
 
 def test_dice():
@@ -149,4 +190,8 @@ def greed_dice():
 if __name__ == "__main__":
     rolls, scores, total_dice, num_faces = test_dice()
     #rolls, scores, total_dice, num_faces = greed_dice()
-    states = make_states(rolls, scores, total_dice, num_faces)
+    combo_rolls, combo_scores = combine(rolls, scores, total_dice)
+    #states = make_states(combo_rolls, combo_scores, total_dice, num_faces)
+    nodes = make_tree(combo_rolls, combo_scores, total_dice, num_faces)
+    for n in nodes:
+        print(n)
